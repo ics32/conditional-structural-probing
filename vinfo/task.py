@@ -162,7 +162,7 @@ class ParseDistanceTask(InitYAMLObject):
   """Maps observations to dependency parse distances between words."""
 
   
-  yaml_tag = '!TokenClassificationTask'
+  yaml_tag = '!ParseDistanceTask'
   train_cache = None
   dev_cache = None
   test_cache = None
@@ -229,7 +229,7 @@ class ParseDistanceTask(InitYAMLObject):
       if self.cache is not None:
         self.setup_cache()
   
- def labels_of_sentence(self, sentence, split):
+  def labels_of_sentence(self, sentence, split):
     """ Provides a tensor of labels for a sentence
 
     Arguments:
@@ -242,7 +242,7 @@ class ParseDistanceTask(InitYAMLObject):
     self._manual_setup()
 
     if self.cache is None:
-      labels = self._labels_of_sentence(sentence, split)
+      labels = self._distances_of_sentence(sentence, split)
       return labels
 
     # Otherwise, either read from or write to cache
@@ -257,17 +257,29 @@ class ParseDistanceTask(InitYAMLObject):
                     self.test_cache_writer if split == TEST_STR else None)))
     if cache_writer is None:
       raise ValueError("Unknown split: {}".format(split))
-    labels = self._labels_of_sentence(sentence, split)
+    labels = self._distances_of_sentence(sentence, split)
     string_key = str(len(cache_writer.keys()))
     dset = cache_writer.create_dataset(string_key, labels.shape)
     dset[:] = labels
     return labels
+def _distances_of_sentence(self, sentence, esplit):
+    """ Provides a tensor of labels for a sentence; no caching
 
-    sentence_length = len(observation[0]) #All observation fields must be of same length
+    Arguments:
+      sentence: a list of lists of data read with fields given in args['input_fields']
+    Output:
+      a tensor with a label for each token in the sentence as given by the annotation
+      for the task specified by self.task_name
+    """
+
+    
+   
+
+    sentence_length = len(sentence) #All observation fields must be of same length
     distances = torch.zeros((sentence_length, sentence_length))
     for i in range(sentence_length):
       for j in range(i,sentence_length):
-        i_j_distance = ParseDistanceTask.distance_between_pairs(observation, i, j)
+        i_j_distance = ParseDistanceTask.distance_between_pairs(sentences, i, j)
         distances[i][j] = i_j_distance
         distances[j][i] = i_j_distance
     return distances
