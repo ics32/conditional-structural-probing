@@ -214,15 +214,55 @@ class ParseDistanceTask(InitYAMLObject):
       self.test_cache = (torch.tensor(f3[str(i)][()]) for i in range(len(f3.keys())))
     else:
       self.test_cache_writer = h5py.File(test_cache_path, 'w')
-  def labels(observation):
-    """Computes the distances between all pairs of words; returns them as a torch tensor.
 
-    Args:
-      observation: a single Observation class for a sentence:
-    Returns:
-      A torch tensor of shape (sentence_length, sentence_length) of distances
-      in the parse tree as specified by the observation annotation.
+  def _manual_setup(self):
+    """ Handles initialization not done in __init__ because of the YAML constructor
+
+    Done when labels_of_sentence is called, but if (for testing) another function is
+    called, there may be extra setup to be done. (Not done in init because the yaml
+    constructor doesn't guarantee that all arguments will be present)
     """
+    # If self.cache is None, then all caching should be skipped
+    if self.name_to_index_dict is None:
+      self.name_to_index_dict = {name:i for i, name in enumerate(self.input_fields)}
+      self.task_label_index = self.name_to_index_dict[self.task_name]
+      if self.cache is not None:
+        self.setup_cache()
+  
+ def labels_of_sentence(self, sentence, split):
+    """ Provides a tensor of labels for a sentence
+
+    Arguments:
+      sentence: a list of lists of data read with fields given in args['input_fields']
+      split: the split ('train','dev','test') that this data belongs to, for caching.
+    Output:
+      a tensor with a label for each token in the sentence as given by the annotation
+      for the task specified by self.task_name
+    """
+    self._manual_setup()
+
+    if self.cache is None:
+      labels = self._labels_of_sentence(sentence, split)
+      return labels
+
+    # Otherwise, either read from or write to cache
+    if split == TRAIN_STR and self.train_cache:
+      return next(self.train_cache)
+    if split == DEV_STR and self.dev_cache:
+      return next(self.dev_cache)
+    if split == TEST_STR and self.test_cache:
+      return next(self.test_cache)
+    cache_writer = (self.train_cache_writer if split == TRAIN_STR else (
+                    self.dev_cache_writer if split == DEV_STR else (
+                    self.test_cache_writer if split == TEST_STR else None)))
+    if cache_writer is None:
+      raise ValueError("Unknown split: {}".format(split))
+    labels = self._labels_of_sentence(sentence, split)
+    string_key = str(len(cache_writer.keys()))
+    dset = cache_writer.create_dataset(string_key, labels.shape)
+    dset[:] = labels
+    return labels
+
     sentence_length = len(observation[0]) #All observation fields must be of same length
     distances = torch.zeros((sentence_length, sentence_length))
     for i in range(sentence_length):
