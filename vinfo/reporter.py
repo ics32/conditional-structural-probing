@@ -132,14 +132,13 @@ class WordPairReporter(Reporter):
 
   def __init__(self, args):
     self.args = args
-    self.reporting_methods = args['reporting']['reporting_methods']
+    self.reporting_methods = reporting_methods
     self.reporting_method_dict = {
-        'spearmanr': self.report_spearmanr,
-        'image_examples':self.report_image_examples,
-        'uuas':self.report_uuas_and_tikz,
-        'write_predictions':self.write_json
+        'label_accuracy':self.report_label_values,
+        'v_entropy':self.report_v_entropy,
         }
-    self.reporting_root = args['reporting']['root']
+    #self.reporting_root = args['reporting']['root']
+    self.reporting_root = reporting_root
     self.test_reporting_constraint = {'spearmanr', 'uuas', 'root_acc'}
 
   def report_spearmanr(self, prediction_batches, dataset, split_name):
