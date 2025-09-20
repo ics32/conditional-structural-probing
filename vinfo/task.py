@@ -284,7 +284,7 @@ def _distances_of_sentence(self, sentence, esplit):
         distances[j][i] = i_j_distance
     return distances
 
-  @staticmethod
+  
   def distance_between_pairs(observation, i, j, head_indices=None):
     '''Computes path distance between a pair of words
 
