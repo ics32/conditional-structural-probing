@@ -54,6 +54,20 @@ class Reporter(InitYAMLObject):
       else:
         tqdm.write('[WARNING] Reporting method not known: {}; skipping'.format(method))
 
+  
+  def write_json(self, prediction_batches, dataset, split_name):
+    """Writes observations and predictions to disk.
+    
+    Args:
+      prediction_batches: A sequence of batches of predictions for a data split
+      dataset: A sequence of batches of Observations
+      split_name the string naming the data split: {train,dev,test}
+    """
+    json.dump([prediction_batch.tolist() for prediction_batch in prediction_batches]
+        , open(os.path.join(self.reporting_root, split_name+'.predictions'), 'w'))
+    json.dump([[x[0][:-1] for x in observation_batch] for _,_,_, observation_batch in dataset],
+        open(os.path.join(self.reporting_root, split_name+'.observations'), 'w'))
+
 class IndependentLabelReporter(Reporter):
   """
   Class for computing and reporting metrics on
@@ -134,8 +148,10 @@ class WordPairReporter(Reporter):
     self.args = args
     self.reporting_methods = reporting_methods
     self.reporting_method_dict = {
-        'label_accuracy':self.report_label_values,
-        'v_entropy':self.report_v_entropy,
+        'spearmanr': self.report_spearmanr,
+        'image_examples':self.report_image_examples,
+        'uuas':self.report_uuas_and_tikz,
+        'write_predictions':self.write_json
         }
     #self.reporting_root = args['reporting']['root']
     self.reporting_root = reporting_root
