@@ -1,1 +1,76 @@
+input_fields: &id_input_fields
+  - one_offset_word_index
+  - token
+  - lemma
+  - upos
+  - ptb_pos
+  - None
+  - dep_head
+  - dep_rel
+  - demo
 
+cache: &id_cache !WholeDatasetCache
+  train_path: &idtrainpath example/ewt-train-tiny.conllu
+  dev_path: &iddevpath example/ewt-dev-tiny.conllu
+  test_path: &idtestpath example/ewt-test-tiny.conllu
+
+disk_reader: !OntonotesReader &id_disk_reader
+  args: 
+    - device: cpu
+  train_path: *idtrainpath 
+  dev_path: *iddevpath 
+  test_path: *idtestpath 
+  cache: *id_cache
+
+dataset: !ListDataset
+  args: 
+    device: cpu
+  data_loader: *id_disk_reader
+  output_dataset: !AnnotationDataset
+    args: 
+      device: cpu
+    task: !ParseDistanceTask
+      args: 
+        device: cpu
+      task_name: demo
+      input_fields: *id_input_fields
+  input_datasets:
+    - !HuggingfaceData
+      args:
+        device: cpu
+      model_string: &model1string roberta-base
+      cache: *id_cache
+
+model: !ListModel
+  args: 
+    device: cpu
+  models:
+    - !HuggingfaceModel
+        args:
+          device: cpu
+        model_string: *model1string
+        trainable: False
+        index: 5
+    
+probe: !TwoWordPSDProbe
+  args:
+    device: cpu
+  model_dim: 768
+  probe_rank: 1024
+
+regimen: !ProbeRegimen
+  args:
+    device: cpu
+  max_epochs: 50
+  params_path: params
+  reporting_root: &id_reporting_root example
+
+reporter: !WordPairReporter
+  args:
+    device: cpu
+  reporting_root: *id_reporting_root
+  reporting_methods:
+    - spearmanr
+    - image_examples
+    - uuas
+    - write_predictions
