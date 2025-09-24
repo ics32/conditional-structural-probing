@@ -7,7 +7,6 @@ input_fields: &id_input_fields
   - None
   - dep_head
   - dep_rel
-  - demo
 
 cache: &id_cache !WholeDatasetCache
   train_path: &idtrainpath example/ewt-train-tiny.conllu
